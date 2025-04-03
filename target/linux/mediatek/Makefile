@@ -8,6 +8,7 @@ BOARDNAME:=MediaTek Ralink ARM
 SUBTARGETS:=mt7986 mt7981
 FEATURES:=squashfs nand emmc ramdisk fpu
 
+# 5.4.171
 KERNEL_PATCHVER:=5.4.246
 KERNEL_TESTING_PATCHVER:=5.4.246
 
