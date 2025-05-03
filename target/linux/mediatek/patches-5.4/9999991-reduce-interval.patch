@@ -40,7 +40,7 @@ index 4f39d9720..c5da86ea4 100644
  			cpu = smp_processor_id();
  
 diff --git a/net/sched/sch_cake.c b/net/sched/sch_cake.c
-index a43661432..dde0b51c6 100644
+index a43661432..660f80431 100644
 --- a/net/sched/sch_cake.c
 +++ b/net/sched/sch_cake.c
 @@ -70,8 +70,15 @@
@@ -89,17 +89,22 @@ index a43661432..dde0b51c6 100644
  };
  
  static const u8 diffserv4[] = {
-@@ -1614,6 +1623,106 @@ static u8 cake_handle_diffserv(struct sk_buff *skb, bool wash)
+@@ -1614,6 +1623,113 @@ static u8 cake_handle_diffserv(struct sk_buff *skb, bool wash)
  	}
  }
  
 +// 判断IP地址是否在指定范围内
++// 判断IP地址是否在指定范围内
 +static bool is_ip_in_range_k(__be32 ip)
 +{
-+    __be32 start_ip = htonl((192 << 24) | (168 << 16) | (110 << 8) | 10);
-+    __be32 end_ip   = htonl((192 << 24) | (168 << 16) | (110 << 8) | 39);
++	// 提取前三个字节（固定为 192.168.110）
++	__be32 prefix = htonl((192 << 24) | (168 << 16) | (110 << 8));
 +
-+    return ip >= start_ip && ip <= end_ip;
++	// 提取 IP 的最后一个字节
++	__be32 last_byte = ip & htonl(0xFF); // 获取 IP 地址的最后一个字节
++
++	// 判断前三个字节是否匹配且最后一个字节在 10 到 39 之间
++	return (ip >> 24) == (prefix >> 24) && last_byte >= 10 && last_byte <= 39;
 +}
 +
 +
@@ -128,21 +133,21 @@ index a43661432..dde0b51c6 100644
 +
 +	// 检查是否为 IPv4 数据包
 +	if (skb_protocol(skb, true) != htons(ETH_P_IP)) {
-+	    return false;  // 如果不是 IPv4 数据包，返回 false
++		return false;  // 如果不是 IPv4 数据包，返回 false
 +	}
 +
 +	iph = ip_hdr(skb);
 +	if (iph) {
++		// 直接检查 IPv4 头部中的源和目的地址
 +		if (is_ip_in_range_k(iph->saddr) || is_ip_in_range_k(iph->daddr)) {
++			pr_info("Packet source or destination IP is in range\n");
 +			ret = true;
 +			return ret;
 +		}
-+	} else {
-+		return false;
 +	}
 +
 +	// 获取自旋锁，保护连接跟踪的操作
-+//	spin_lock_bh(&q->conntrack_lock);
++	//spin_lock_bh(&q->conntrack_lock);
 +
 +	// 尝试获取连接跟踪记录
 +	ct = nf_ct_get(skb, &ctinfo);
@@ -151,20 +156,21 @@ index a43661432..dde0b51c6 100644
 +		tuple_origin = nf_ct_tuple(ct, IP_CT_DIR_ORIGINAL);
 +		tuple_reply = nf_ct_tuple(ct, IP_CT_DIR_REPLY);
 +
-+		ct = NULL;
 +		// 检查元组是否在指定的 IP 范围内
 +		if (tuple_ips_in_range_k(tuple_origin) || tuple_ips_in_range_k(tuple_reply)) {
-+		    ret = true;
-+		    goto out;
++			pr_info("Connection tuple is in range\n");
++			ret = true;
++			goto out;
 +		}
 +	} else {
 +		// 如果没有找到连接跟踪记录，尝试根据数据包获取元组
 +		if (nf_ct_get_tuplepr(skb, skb_network_offset(skb),
-+				      NFPROTO_IPV4, dev_net(skb->dev),
-+				      &skb_tuple)) {
++				NFPROTO_IPV4, dev_net(skb->dev),
++				&skb_tuple)) {
++			pr_info("Trying to find tuple from skb\n");
 +			hash = nf_conntrack_find_get(dev_net(skb->dev),
-+						 &nf_ct_zone_dflt,
-+						 &skb_tuple);
++										  &nf_ct_zone_dflt,
++										  &skb_tuple);
 +			if (hash) {
 +				ct = nf_ct_tuplehash_to_ctrack(hash);
 +				if (ct) {
@@ -172,6 +178,7 @@ index a43661432..dde0b51c6 100644
 +					tuple_reply = nf_ct_tuple(ct, IP_CT_DIR_REPLY);
 +
 +					if (tuple_ips_in_range_k(tuple_origin) || tuple_ips_in_range_k(tuple_reply)) {
++						pr_info("Found matching tuple from skb\n");
 +						ret = true;
 +						goto out;
 +					}
@@ -187,7 +194,7 @@ index a43661432..dde0b51c6 100644
 +	}
 +
 +	// 释放自旋锁
-+//	spin_unlock_bh(&q->conntrack_lock);
++	//spin_unlock_bh(&q->conntrack_lock);
 +
 +	return ret;
 +}
@@ -196,7 +203,7 @@ index a43661432..dde0b51c6 100644
  static struct cake_tin_data *cake_select_tin(struct Qdisc *sch,
  					     struct sk_buff *skb)
  {
-@@ -1622,6 +1731,53 @@ static struct cake_tin_data *cake_select_tin(struct Qdisc *sch,
+@@ -1622,6 +1738,53 @@ static struct cake_tin_data *cake_select_tin(struct Qdisc *sch,
  	bool wash;
  	u8 dscp;
  
@@ -250,7 +257,7 @@ index a43661432..dde0b51c6 100644
  	/* Tin selection: Default to diffserv-based selection, allow overriding
  	 * using firewall marks or skb->priority. Call DSCP parsing early if
  	 * wash is enabled, otherwise defer to below to skip unneeded parsing.
-@@ -1634,19 +1790,35 @@ static struct cake_tin_data *cake_select_tin(struct Qdisc *sch,
+@@ -1634,19 +1797,35 @@ static struct cake_tin_data *cake_select_tin(struct Qdisc *sch,
  	if (q->tin_mode == CAKE_DIFFSERV_BESTEFFORT)
  		tin = 0;
  
@@ -289,7 +296,7 @@ index a43661432..dde0b51c6 100644
  		if (unlikely(tin >= q->tin_cnt))
  			tin = 0;
  	}
-@@ -2322,7 +2494,7 @@ static int cake_config_precedence(struct Qdisc *sch)
+@@ -2322,7 +2501,7 @@ static int cake_config_precedence(struct Qdisc *sch)
  	/* convert high-level (user visible) parameters into internal format */
  	struct cake_sched_data *q = qdisc_priv(sch);
  	u32 mtu = psched_mtu(qdisc_dev(sch));
@@ -298,7 +305,7 @@ index a43661432..dde0b51c6 100644
  	u32 quantum = 256;
  	u32 i;
  
-@@ -2333,10 +2505,29 @@ static int cake_config_precedence(struct Qdisc *sch)
+@@ -2333,10 +2512,29 @@ static int cake_config_precedence(struct Qdisc *sch)
  	for (i = 0; i < q->tin_cnt; i++) {
  		struct cake_tin_data *b = &q->tins[i];
  
@@ -331,7 +338,7 @@ index a43661432..dde0b51c6 100644
  
  		/* calculate next class's parameters */
  		rate  *= 7;
-@@ -2397,8 +2588,8 @@ static int cake_config_diffserv8(struct Qdisc *sch)
+@@ -2397,8 +2595,8 @@ static int cake_config_diffserv8(struct Qdisc *sch)
  {
  /*	Pruned list of traffic classes for typical applications:
   *
@@ -342,7 +349,7 @@ index a43661432..dde0b51c6 100644
   *		Interactive Shell        (CS2, TOS1)
   *		Low Latency Transactions (AF2x, TOS4)
   *		Video Streaming          (AF4x, AF3x, CS3)
-@@ -2411,7 +2602,7 @@ static int cake_config_diffserv8(struct Qdisc *sch)
+@@ -2411,7 +2609,7 @@ static int cake_config_diffserv8(struct Qdisc *sch)
  
  	struct cake_sched_data *q = qdisc_priv(sch);
  	u32 mtu = psched_mtu(qdisc_dev(sch));
@@ -351,7 +358,7 @@ index a43661432..dde0b51c6 100644
  	u32 quantum = 256;
  	u32 i;
  
-@@ -2425,10 +2616,31 @@ static int cake_config_diffserv8(struct Qdisc *sch)
+@@ -2425,10 +2623,31 @@ static int cake_config_diffserv8(struct Qdisc *sch)
  	for (i = 0; i < q->tin_cnt; i++) {
  		struct cake_tin_data *b = &q->tins[i];
  
@@ -386,7 +393,7 @@ index a43661432..dde0b51c6 100644
  
  		/* calculate next class's parameters */
  		rate  *= 7;
-@@ -2717,8 +2929,8 @@ static int cake_init(struct Qdisc *sch, struct nlattr *opt,
+@@ -2717,8 +2936,8 @@ static int cake_init(struct Qdisc *sch, struct nlattr *opt,
  
  	q->rate_bps = 0; /* unlimited by default */
  
