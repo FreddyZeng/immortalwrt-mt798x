@@ -76,13 +76,16 @@ CONFIG_TARGET_mediatek_mt7986_DEVICE_xiaomi_redmi-router-ax6000=n
 # CONFIG_TARGET_mediatek_mt7986_DEVICE_BPI-R3MINI-EMMC is not set
 # CONFIG_TARGET_mediatek_mt7986_DEVICE_jdcloud_re-cp-03 is not set
 # CONFIG_TARGET_mediatek_mt7986_DEVICE_netcore_n60 is not set
-CONFIG_TARGET_mediatek_mt7986_DEVICE_netcore_n60-pro=n
 # CONFIG_TARGET_mediatek_mt7986_DEVICE_glinet_gl-mt6000 is not set
 # CONFIG_TARGET_mediatek_mt7986_DEVICE_ruijie-rg-x60-pro-stock is not set
-CONFIG_TARGET_mediatek_mt7986_DEVICE_ruijie-rg-x60-pro=y
-CONFIG_TARGET_DEVICE_mediatek_mt7986_DEVICE_ruijie-rg-x60-pro=y
+CONFIG_TARGET_mediatek_mt7986_DEVICE_netcore_n60-pro=y
+CONFIG_TARGET_DEVICE_mediatek_mt7986_DEVICE_netcore_n60-pro=y
+CONFIG_TARGET_DEVICE_PACKAGES_mediatek_mt7986_DEVICE_netcore_n60-pro=""
+CONFIG_TARGET_mediatek_mt7986_DEVICE_ruijie-rg-x60-pro=n
+CONFIG_TARGET_DEVICE_mediatek_mt7986_DEVICE_ruijie-rg-x60-pro=n
 CONFIG_TARGET_DEVICE_PACKAGES_mediatek_mt7986_DEVICE_ruijie-rg-x60-pro=""
-CONFIG_TARGET_DEVICE_mediatek_mt7986_DEVICE_ruijie-rg-x60-pro-uboot=y
+CONFIG_TARGET_mediatek_mt7986_DEVICE_ruijie-rg-x60-pro-uboot=n
+CONFIG_TARGET_DEVICE_mediatek_mt7986_DEVICE_ruijie-rg-x60-pro-uboot=n
 CONFIG_TARGET_DEVICE_PACKAGES_mediatek_mt7986_DEVICE_ruijie-rg-x60-pro-uboot=""
 # CONFIG_TARGET_mediatek_mt7986_DEVICE_tplink_tl-xdr6086 is not set
 # CONFIG_TARGET_mediatek_mt7986_DEVICE_tplink_tl-xdr6088 is not set
@@ -124,8 +127,6 @@ CONFIG_TARGET_PER_DEVICE_ROOTFS=y
 # CONFIG_TARGET_DEVICE_mediatek_mt7986_DEVICE_BPI-R3MINI-NAND is not set
 # CONFIG_TARGET_DEVICE_mediatek_mt7986_DEVICE_BPI-R3MINI-NAND-110M is not set
 # CONFIG_TARGET_DEVICE_mediatek_mt7986_DEVICE_netcore_n60 is not set
-CONFIG_TARGET_DEVICE_mediatek_mt7986_DEVICE_netcore_n60-pro=n
-CONFIG_TARGET_DEVICE_PACKAGES_mediatek_mt7986_DEVICE_netcore_n60-pro=""
 # CONFIG_TARGET_DEVICE_mediatek_mt7986_DEVICE_ruijie-rg-x60-pro is not set
 # CONFIG_TARGET_DEVICE_mediatek_mt7986_DEVICE_ruijie-rg-x60-pro-stock is not set
 # CONFIG_TARGET_DEVICE_mediatek_mt7986_DEVICE_tplink_tl-xdr6086 is not set
